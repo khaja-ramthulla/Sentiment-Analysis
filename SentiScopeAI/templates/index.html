@@ -1,0 +1,474 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>SentiScope AI</title>
+
+<style>
+
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family:Segoe UI,sans-serif;
+}
+
+body{
+    background:#0f172a;
+    color:white;
+    min-height:100vh;
+    padding:30px;
+}
+
+.container{
+    max-width:1200px;
+    margin:auto;
+}
+
+h1{
+    text-align:center;
+    margin-bottom:10px;
+}
+
+.subtitle{
+    text-align:center;
+    color:#94a3b8;
+    margin-bottom:40px;
+}
+
+.grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:20px;
+}
+
+.card{
+    background:#1e293b;
+    border-radius:20px;
+    padding:20px;
+}
+
+textarea{
+    width:100%;
+    height:350px;
+    border:none;
+    outline:none;
+    resize:none;
+    background:#0f172a;
+    color:white;
+    padding:15px;
+    border-radius:12px;
+    margin-top:10px;
+}
+
+.buttons{
+    display:flex;
+    gap:10px;
+    margin-top:15px;
+}
+
+button{
+    border:none;
+    padding:12px 18px;
+    border-radius:10px;
+    cursor:pointer;
+    font-weight:600;
+}
+
+.primary{
+    background:#2563eb;
+    color:white;
+}
+
+.secondary{
+    background:#334155;
+    color:white;
+}
+
+.result-box{
+    min-height:350px;
+}
+
+.sentiment{
+    font-size:2rem;
+    font-weight:bold;
+    margin-bottom:15px;
+}
+
+.progress{
+    width:100%;
+    height:12px;
+    background:#334155;
+    border-radius:999px;
+    overflow:hidden;
+    margin-top:10px;
+}
+
+.progress-fill{
+    height:100%;
+    width:0%;
+    background:#22c55e;
+}
+
+.stats{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:15px;
+    margin-top:20px;
+}
+
+.stat{
+    background:#1e293b;
+    padding:20px;
+    border-radius:15px;
+    text-align:center;
+}
+
+.stat h3{
+    margin-bottom:8px;
+}
+
+.keywords{
+    margin-top:20px;
+}
+
+.chip{
+    display:inline-block;
+    padding:8px 12px;
+    margin:5px;
+    background:#2563eb;
+    border-radius:999px;
+}
+
+.sentences{
+    margin-top:20px;
+}
+
+.sentence-card{
+    background:#334155;
+    padding:12px;
+    border-radius:10px;
+    margin-bottom:10px;
+}
+
+.loading{
+    display:none;
+    margin-top:10px;
+    color:#94a3b8;
+}
+
+@media(max-width:900px){
+
+.grid{
+    grid-template-columns:1fr;
+}
+
+.stats{
+    grid-template-columns:1fr 1fr;
+}
+
+}
+
+</style>
+</head>
+<body>
+
+<div class="container">
+
+<h1>🧠 SentiScope AI</h1>
+
+<p class="subtitle">
+Advanced Sentiment Analysis Tool
+</p>
+
+<div class="grid">
+
+<div class="card">
+
+<h2>Input Text</h2>
+
+<textarea
+id="inputText"
+placeholder="Paste your review or text here...">
+</textarea>
+
+<div class="buttons">
+
+<button
+class="primary"
+onclick="analyzeText()">
+
+Analyze
+</button>
+
+<button
+class="secondary"
+onclick="clearText()">
+
+Clear
+</button>
+
+</div>
+
+<div
+class="loading"
+id="loading">
+
+Analyzing...
+</div>
+
+</div>
+
+<div class="card result-box">
+
+<h2>Analysis Result</h2>
+
+<div
+class="sentiment"
+id="sentiment">
+
+Awaiting analysis...
+</div>
+
+<p>
+Confidence:
+<span id="confidence">
+0%
+</span>
+</p>
+
+<div class="progress">
+
+<div
+class="progress-fill"
+id="progressFill">
+</div>
+
+</div>
+
+<br>
+
+<p>
+Emotion:
+<span id="emotion">
+-
+</span>
+</p>
+
+</div>
+
+</div>
+
+<div class="stats">
+
+<div class="stat">
+<h3 id="wordCount">0</h3>
+<p>Words</p>
+</div>
+
+<div class="stat">
+<h3 id="readingTime">0</h3>
+<p>Reading Time</p>
+</div>
+
+<div class="stat">
+<h3 id="keywordCount">0</h3>
+<p>Keywords</p>
+</div>
+
+<div class="stat">
+<h3 id="sentenceCount">0</h3>
+<p>Sentences</p>
+</div>
+
+</div>
+
+<div class="card keywords">
+
+<h2>Keywords</h2>
+
+<div id="keywordsContainer">
+
+No keywords yet.
+
+</div>
+
+</div>
+
+<div class="card sentences">
+
+<h2>Sentence Analysis</h2>
+
+<div id="sentenceContainer">
+
+No analysis yet.
+
+</div>
+
+</div>
+
+</div>
+
+<script>
+
+async function analyzeText(){
+
+const text =
+document.getElementById(
+"inputText"
+).value.trim();
+
+if(!text){
+
+alert(
+"Please enter text."
+);
+
+return;
+}
+
+document.getElementById(
+"loading"
+).style.display =
+"block";
+
+const formData =
+new FormData();
+
+formData.append(
+"text",
+text
+);
+
+try{
+
+const response =
+await fetch(
+"/analyze",
+{
+method:"POST",
+body:formData
+}
+);
+
+const data =
+await response.json();
+
+document.getElementById(
+"loading"
+).style.display =
+"none";
+
+if(data.error){
+
+alert(data.error);
+return;
+}
+
+document.getElementById(
+"sentiment"
+).innerText =
+data.sentiment;
+
+document.getElementById(
+"confidence"
+).innerText =
+data.confidence + "%";
+
+document.getElementById(
+"emotion"
+).innerText =
+data.emotion;
+
+document.getElementById(
+"progressFill"
+).style.width =
+data.confidence + "%";
+
+document.getElementById(
+"wordCount"
+).innerText =
+data.word_count;
+
+document.getElementById(
+"readingTime"
+).innerText =
+data.reading_time;
+
+document.getElementById(
+"keywordCount"
+).innerText =
+data.keywords.length;
+
+document.getElementById(
+"sentenceCount"
+).innerText =
+data.sentence_analysis.length;
+
+let keywordHTML = "";
+
+data.keywords.forEach(keyword=>{
+
+keywordHTML +=
+`<span class="chip">${keyword}</span>`;
+
+});
+
+document.getElementById(
+"keywordsContainer"
+).innerHTML =
+keywordHTML;
+
+let sentenceHTML = "";
+
+data.sentence_analysis.forEach(item=>{
+
+sentenceHTML += `
+<div class="sentence-card">
+<strong>${item.sentiment}</strong><br>
+${item.sentence}
+</div>
+`;
+
+});
+
+document.getElementById(
+"sentenceContainer"
+).innerHTML =
+sentenceHTML;
+
+}
+catch(error){
+
+document.getElementById(
+"loading"
+).style.display =
+"none";
+
+alert(
+"Something went wrong."
+);
+
+console.error(error);
+
+}
+
+}
+
+function clearText(){
+
+document.getElementById(
+"inputText"
+).value = "";
+
+location.reload();
+
+}
+
+</script>
+
+</body>
+</html>
